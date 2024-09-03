@@ -1,4 +1,3 @@
-#regions LOCALS
 locals {
   name         = "eks-bp-demo"
   cluster_name = "eks-bp-demo"
@@ -26,49 +25,6 @@ module "eks_blueprints" {
     }
   }
 
-  #region Teams
-  platform_teams = {
-    admin = {
-      users = [data.aws_caller_identity.current.arn]
-    }
-  }
-
-  application_teams = {
-    team-blue-dev = {
-      "labels" = {
-        "appName"     = "blue-team-app",
-        "projectName" = "project-blue",
-        "environment" = "dev"
-      }
-      "quota" = {
-        "requests.cpu"    = "1000m",
-        "requests.memory" = "4Gi",
-        "limits.cpu"      = "2000m",
-        "limits.memory"   = "8Gi",
-        "pods"            = "10",
-        "secrets"         = "10",
-        "services"        = "10"
-      }
-
-      #manifests_dir = "./manifests-team-blue"
-      users         = [data.aws_caller_identity.current.arn]
-    }
-  }
-  #endregion Team
-}
-#endregion
-
-resource "time_sleep" "wait_for_cluster" {
-  depends_on = [module.eks_blueprints]
-
-  create_duration = "180s"
-
-  triggers = {
-    "always_run" = timestamp()
-  }
-}
-
-#region ADDONS
 module "eks_blueprints_kubernetes_addons" {
   source = "github.com/aws-ia/terraform-aws-eks-blueprints//modules/kubernetes-addons?ref=v4.8.0"
 
@@ -112,28 +68,22 @@ module "eks_blueprints_kubernetes_addons" {
     }
   }
 
-  # ingress
-  enable_aws_load_balancer_controller = true
-  enable_ingress_nginx = true
-  ingress_nginx_helm_config = {
-    version   = "4.0.17"
-    values    = [templatefile("${path.module}/static/nginx_values.yaml", {})]
-    hostname  = "lkravi.me"
-    ssl_cert_arn  = data.aws_acm_certificate.issued.arn
+
+ enable_aws_load_balancer_controller = true
+  
   }
 
-  enable_aws_for_fluentbit            = true
+  enable_aws_for_fluentbit            = false
   enable_cluster_autoscaler           = true
   enable_metrics_server               = true
-  enable_prometheus                   = true
-  enable_grafana                      = true
-  enable_external_secrets             = true
-  enable_aws_efs_csi_driver           = true
-  enable_aws_cloudwatch_metrics       = true
+  enable_prometheus                   = false
+  enable_grafana                      = false
+  enable_external_secrets             = false
+  enable_aws_efs_csi_driver           = false
+  enable_aws_cloudwatch_metrics       = false
   #endregion
 
   depends_on = [
     time_sleep.wait_for_cluster
   ]
 }
-#endregion
